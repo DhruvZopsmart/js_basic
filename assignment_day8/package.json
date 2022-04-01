@@ -1,0 +1,17 @@
+{
+  "name": "assignment_day8",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bulding_server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npm bulding_server.js",
+    "dev": "nodemon bulding_server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "dotenv": "^16.0.0",
+    "nodemon": "^2.0.15"
+  }
+}
