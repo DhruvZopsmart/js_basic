@@ -3,32 +3,21 @@ import dotenv from 'dotenv';
 import { v4 } from 'uuid';
 import url from 'url'
 dotenv.config();
-
+import { ITodo, statuses, requestMethods } from './const';
 const PORT = process.env.PORT;
 
-// enums
-enum statuses {
-    incomplete = 'incomplete',
-    inprogress = 'inprogress',
-    completed = 'completed'
-}
 
-// data
-let data: { title?: string, id?: string, status?: statuses, createdDate?: Date, updatedAt?: Date }[] = [];
+
+// TodoList
+let TodoList: ITodo[] = [];
 
 // creating server
 const server = http.createServer((req, res) => {
-    let requrl: string = req.url || '';
-
-    if (req.url === undefined) {
-        res.statusCode = 404;
-        res.end();
-    }
-
-    // posting data to server
-    if (req.method == 'POST' && req.url == '/todo') {
+    let requrl = req.url || '';
+    // posting TodoList to server
+    if (req.method == requestMethods.POST && req.url == '/todo') {
         let body = '';
-        req.on('data', chunk => {
+        req.on('TodoList', chunk => {
             body += chunk.toString();
         })
         req.on('end', () => {
@@ -39,33 +28,56 @@ const server = http.createServer((req, res) => {
                 if (!(obj.status === statuses.incomplete || obj.status === undefined)) {
                     throw `status should be spellled ${statuses.incomplete}`;
                 }
-                obj.status = statuses.incomplete;
+                obj.status=statuses.incomplete;
+                
                 let id = v4();
-                const value = { id, title: obj.title, status: obj.status, date: new Date() };
-                data.push(value);
+                const value:ITodo = { id, ...obj,createdDate:new Date()  };
+                TodoList.push(value);
                 res.statusCode = 201;
                 res.end(JSON.stringify(value));
 
             } catch (error) {
-                res.statusCode = 400;
+                res.statusCode = 406;
                 res.end(error);
             }
         })
     }
-
-    // get request
-    else if (req.method == 'GET' && (requrl).includes('/todo')) {
+    // get request for query
+    else if (req.method == requestMethods.GET && (requrl).includes('/todo') && requrl.includes('?')) {
+        const parse = url.parse(requrl, true);
+        let { title='' } = parse.query;
+        if (title == '') { res.statusCode = 200; res.end(JSON.stringify(TodoList)); }
+        
+        title = Array.isArray(title) ? title[0] : title;
+        let matchedobj:ITodo[] = [];
+        if( title ) {
+            TodoList.forEach((v) => {
+                if(v.title.includes(title.toString())) {
+                    matchedobj.push(v);
+                }
+            })
+        }
+        res.statusCode = 200;
+        if (matchedobj.length == 0)
+            res.end('no result for query ');
+        else
+            res.end(JSON.stringify(matchedobj));
+        res.end();
+    }
+    //get request for id
+    else if (req.method == requestMethods.GET && (requrl).includes('/todo')) {
         const arr = requrl.split('/');
         const id = arr[2];
 
         if (id !== undefined) {
             try {
-                const ob = data.map((v) => {
+                const ob: ITodo | any=  TodoList.filter((v) => {
                     if (v.id == id)
                         return v;
                 })
-            console.log(ob);
-                if (ob)
+                console.log(ob.length);
+                console.log(ob);
+                if (!ob.length)
                     throw "todo with this id not present";
                 res.end(JSON.stringify(ob));
             } catch (error) {
@@ -74,66 +86,45 @@ const server = http.createServer((req, res) => {
             }
         }
 
-        else if (requrl.includes('?')) {
-            const parse = url.parse(requrl, true);
-            let { title } = parse.query ;
-            if(!title)
-            {res.statusCode = 400; res.end('query not given');}
-            let matchedobj: any[] = [];
-            data.map(v => {
-                if (v.title == title) {
-                    matchedobj.push(v);
-                }
-            })
-            res.statusCode = 200;
-            if (matchedobj.length == 0)
-                res.end('no result for query ');
-            else
-                res.end(JSON.stringify(matchedobj));
-            res.end();
-        }
-
         else {
             res.statusCode = 400;
             res.end('id not given');
         }
     }
-
     // delete todo
-    else if (req.method == 'DELETE') {
+    else if (req.method == requestMethods.DELETE ) {
         const arr = requrl.split('/');
         const id = arr[2];
         if (id != undefined) {
-            let filtered = data.filter((v) => {
+            let filtered = TodoList.filter((v) => {
                 if (v.id != id)
                     return v;
             })
-            if (filtered.length == data.length) {
+            if (filtered.length == TodoList.length) {
                 res.statusCode = 400;
                 res.end('id not present')
             }
-            data = filtered;
+            TodoList = filtered;
             res.statusCode = 200;
-            res.end(`data with id ${id} deleted`)
+            res.end(`TodoList with id ${id} deleted`)
         }
         else {
             res.statusCode = 400; res.end('id not given');
         }
     }
-
     // put request
-    else if (req.method == 'PUT' && (requrl).includes('/todo')) {
+    else if (req.method == requestMethods.PUT && (requrl).includes('/todo')) {
         const arr = requrl.split('/');
         const id = arr[2];
         let body = '';
         if (id != undefined) {
-            req.on('data', chunk => {
+            req.on('TodoList', chunk => {
                 body += chunk.toString();
             })
             req.on('end', () => {
                 const obj = JSON.parse(body);
-                let value =0 ;
-                data.map(e => {
+                let value = 0;
+                TodoList.map(e => {
                     if (e.id == id) {
                         e.title = obj.title ? obj.title : e.title;
                         e.status = obj.stataus ? obj.stataus : e.status;
@@ -141,16 +132,16 @@ const server = http.createServer((req, res) => {
                         value = 1;
                     }
                 });
-                if(value){
-                    
-                res.statusCode = 201;
-                res.end(JSON.stringify({
-                    data:{
-                        'id':id
-                    }
-                }));
+                if (value) {
+
+                    res.statusCode = 201;
+                    res.end(JSON.stringify({
+                        TodoList: {
+                            'id': id
+                        }
+                    }));
                 }
-                else{
+                else {
                     res.statusCode = 400;
                     res.end('id not present');
                 }
@@ -162,8 +153,9 @@ const server = http.createServer((req, res) => {
             res.end('id not given');
         }
     }
+    //url not found
     else {
-        res.statusCode=404;
+        res.statusCode = 404;
         res.end('page not found');
     }
 })
