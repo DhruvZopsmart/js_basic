@@ -5,13 +5,21 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
-    "dev" : "nodemon index.js"
+    "start": "nodemon ts-node index.ts",
+    "dev": "nodemon index.js"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^17.0.23",
+    "@types/uuid": "^8.3.4",
     "dotenv": "^16.0.0",
-    "nodemon": "^2.0.15"
+    "nodemon": "^2.0.15",
+    "ts-node": "^10.7.0"
+  },
+  "dependencies": {
+    "querystring": "^0.2.1",
+    "url": "^0.11.0",
+    "uuid": "^8.3.2"
   }
 }
